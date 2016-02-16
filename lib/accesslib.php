@@ -4207,6 +4207,24 @@ function get_role_users($roleid, context $context, $parent = false, $fields = ''
     if (!$sort) {
         list($sort, $sortparams) = users_order_by_sql('u');
         $params = array_merge($params, $sortparams);
+
+		// For postgres the $sort fields need to be part of the requested fields.
+		if ($DB->get_dbfamily() === 'postgres') {
+			$newsort = array();
+			$sortarray = explode(',', $sort);
+			foreach ($sortarray as $sortfield) {
+				$sortfield = trim($sortfield);
+				if (strpos($fields, $sortfield) !== false) {
+					$newsort[] = $sortfield;
+				}
+			}
+			// If none of the $sort fields are present in $fields, use $fields as the sorting fields.
+			if (empty($newsort)) {
+				$sort = $fields;
+			} else {
+				$sort = implode(', ', $newsort);
+			}
+		}
     }
 
     if ($all === null) {
